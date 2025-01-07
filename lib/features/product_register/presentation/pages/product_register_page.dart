@@ -5,6 +5,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/common/detail_app_bar.dart';
 import '../../domain/constants/product_categories.dart';
 import '../../domain/constants/storage_locations.dart';
+import 'package:provider/provider.dart';
+import '../../../home/presentation/providers/product_provider.dart';
+import '../../../home/domain/models/product.dart';
 
 class ProductRegisterPage extends StatefulWidget {
   const ProductRegisterPage({super.key});
@@ -100,6 +103,18 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
         rightButtonText: '등록',
         onRightButtonTap: () {
           if (_formKey.currentState?.validate() ?? false) {
+            // 새 상품 생성
+            final product = Product(
+              name: _productNameController.text,
+              category: _categoryController.text,
+              location: _locationController.text,
+              expiryDate: DateTime.parse(
+                  _expiryDateController.text.replaceAll('. ', '-')),
+            );
+
+            // Provider를 통해 상품 추가
+            context.read<ProductProvider>().addProduct(product);
+
             Navigator.pop(context);
           }
         },

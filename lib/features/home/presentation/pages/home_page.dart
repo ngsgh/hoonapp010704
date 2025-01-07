@@ -4,22 +4,14 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../domain/models/product.dart';
 import '../widgets/product_list_item.dart';
+import 'package:provider/provider.dart';
+import '../providers/product_provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // TODO: 실제 데이터로 교체
-    final List<Product> products = [
-      Product(
-        name: '트라이베이컨',
-        category: '육류',
-        location: '주 냉장',
-        expiryDate: DateTime(2025, 4, 5),
-      ),
-    ];
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -35,14 +27,24 @@ class HomePage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(AppSpacing.medium),
-        itemCount: products.length,
-        separatorBuilder: (context, index) =>
-            const SizedBox(height: AppSpacing.medium),
-        itemBuilder: (context, index) => ProductListItem(
-          product: products[index],
-        ),
+      body: Consumer<ProductProvider>(
+        builder: (context, provider, child) {
+          if (provider.products.isEmpty) {
+            return const Center(
+              child: Text('등록된 상품이 없습니다'),
+            );
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(AppSpacing.medium),
+            itemCount: provider.products.length,
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppSpacing.medium),
+            itemBuilder: (context, index) => ProductListItem(
+              product: provider.products[index],
+            ),
+          );
+        },
       ),
     );
   }

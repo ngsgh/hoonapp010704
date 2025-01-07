@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'core/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import 'core/theme/app_colors.dart';
+import 'core/theme/app_typography.dart';
+import 'core/theme/app_spacing.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/product_register/presentation/pages/product_register_page.dart';
 import 'shared/widgets/navigation/bottom_nav_bar.dart';
 import 'features/shopping/presentation/pages/shopping_page.dart';
 import 'features/recipe/presentation/pages/recipe_page.dart';
 import 'features/product_info/presentation/pages/product_info_page.dart';
+import 'features/home/presentation/providers/product_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,10 +20,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '스마트 냉장고',
-      theme: AppTheme.theme,
-      home: const RootPage(),
+    return ChangeNotifierProvider(
+      create: (_) => ProductProvider(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          scaffoldBackgroundColor: AppColors.background,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: AppColors.white,
+            elevation: 0,
+          ),
+        ),
+        home: const RootPage(),
+      ),
     );
   }
 }
