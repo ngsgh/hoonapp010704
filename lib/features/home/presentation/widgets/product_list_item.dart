@@ -79,24 +79,27 @@ class ProductListItem extends StatelessWidget {
                   : ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: FutureBuilder<String>(
-                        future: ImageStorageUtil.getFullPath(product.imageUrl!),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
+                        future: ImageStorageUtil.getFullPath(product.imageUrl!
+                                .contains('product_images/')
+                            ? product.imageUrl!.substring(
+                                product.imageUrl!.indexOf('product_images/'))
+                            : product.imageUrl!),
+                        builder: (context, pathSnapshot) {
+                          if (pathSnapshot.hasData) {
                             return Image.file(
-                              File(snapshot.data!),
+                              File(pathSnapshot.data!),
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
+                                debugPrint('이미지 로드 에러: $error');
+                                debugPrint('시도한 경로: ${pathSnapshot.data}');
                                 return const Icon(
-                                  Icons.image_not_supported_outlined,
+                                  Icons.error_outline,
                                   color: AppColors.grey500,
                                 );
                               },
                             );
                           }
-                          return const Icon(
-                            Icons.image_not_supported_outlined,
-                            color: AppColors.grey500,
-                          );
+                          return const CircularProgressIndicator();
                         },
                       ),
                     ),
