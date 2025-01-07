@@ -4,8 +4,15 @@ import '../../domain/models/product.dart';
 import '../../../../core/utils/image_storage_util.dart';
 import 'dart:io';
 
+enum SortType {
+  none,
+  expiryDate,
+  registrationDate,
+}
+
 class ProductProvider extends ChangeNotifier {
   final Box<Product> _box = Hive.box<Product>('products');
+  SortType _sortType = SortType.none;
 
   List<Product> get products => _box.values.toList();
 
@@ -23,6 +30,13 @@ class ProductProvider extends ChangeNotifier {
         '간식',
         '기타',
       ];
+
+  SortType get sortType => _sortType;
+
+  void setSortType(SortType type) {
+    _sortType = type;
+    notifyListeners();
+  }
 
   void setCategory(String category) {
     _selectedCategory = category;
@@ -80,12 +94,26 @@ class ProductProvider extends ChangeNotifier {
         ? products
         : products.where((p) => p.category == _selectedCategory).toList();
 
-    for (final product in filteredProducts) {
-      if (!grouped.containsKey(product.category)) {
-        grouped[product.category] = [];
-      }
-      grouped[product.category]!.add(product);
+    for (var product in filteredProducts) {
+      grouped.putIfAbsent(product.category, () => []).add(product);
     }
+
+    // 각 카테고리 내에서 정렬
+    grouped.forEach((category, products) {
+      switch (_sortType) {
+        case SortType.expiryDate:
+          products.sort((a, b) => a.expiryDate.compareTo(b.expiryDate));
+          break;
+        case SortType.registrationDate:
+          // Hive의 key를 기준으로 정렬 (등록 순서)
+          products.sort((a, b) => (a.key as int).compareTo(b.key as int));
+          break;
+        case SortType.none:
+          // 기본 정렬 (등록 순서)
+          products.sort((a, b) => (a.key as int).compareTo(b.key as int));
+          break;
+      }
+    });
 
     return grouped;
   }

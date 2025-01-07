@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
-import '../../../../core/constants/spacing.dart';
-import '../../../../core/constants/typography.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/image_storage_util.dart';
 import '../../domain/models/product.dart';
 
@@ -20,6 +20,38 @@ class ProductListItem extends StatelessWidget {
     this.onDelete,
   });
 
+  Color _getExpiryColor() {
+    final daysUntilExpiry =
+        product.expiryDate.difference(DateTime.now()).inDays;
+    if (daysUntilExpiry <= 3) {
+      return AppColors.primary.withOpacity(0.1);
+    } else if (daysUntilExpiry <= 7) {
+      return AppColors.primary.withOpacity(0.05);
+    }
+    return AppColors.white;
+  }
+
+  String _getExpiryText() {
+    final daysUntilExpiry =
+        product.expiryDate.difference(DateTime.now()).inDays;
+    if (daysUntilExpiry < 0) {
+      return '유통기한 만료';
+    } else if (daysUntilExpiry == 0) {
+      return '오늘 만료';
+    } else {
+      return 'D-$daysUntilExpiry';
+    }
+  }
+
+  Color _getExpiryTextColor() {
+    final daysUntilExpiry =
+        product.expiryDate.difference(DateTime.now()).inDays;
+    if (daysUntilExpiry <= 3) {
+      return AppColors.primary;
+    }
+    return AppColors.grey700;
+  }
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -27,7 +59,7 @@ class ProductListItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.medium),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: _getExpiryColor(),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -46,35 +78,18 @@ class ProductListItem extends StatelessWidget {
                     )
                   : ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: FutureBuilder<bool>(
-                        future:
-                            ImageStorageUtil.checkImageExists(product.imageUrl),
+                      child: FutureBuilder<String>(
+                        future: ImageStorageUtil.getFullPath(product.imageUrl!),
                         builder: (context, snapshot) {
-                          if (snapshot.data == true) {
-                            return FutureBuilder<String>(
-                              future: ImageStorageUtil.getFullPath(
-                                  product.imageUrl!.contains('product_images/')
-                                      ? product.imageUrl!.substring(product
-                                          .imageUrl!
-                                          .indexOf('product_images/'))
-                                      : product.imageUrl!),
-                              builder: (context, pathSnapshot) {
-                                if (pathSnapshot.hasData) {
-                                  return Image.file(
-                                    File(pathSnapshot.data!),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      debugPrint('이미지 로드 에러: $error');
-                                      debugPrint(
-                                          '시도한 경로: ${pathSnapshot.data}');
-                                      return const Icon(
-                                        Icons.error_outline,
-                                        color: AppColors.grey500,
-                                      );
-                                    },
-                                  );
-                                }
-                                return const CircularProgressIndicator();
+                          if (snapshot.hasData) {
+                            return Image.file(
+                              File(snapshot.data!),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  color: AppColors.grey500,
+                                );
                               },
                             );
                           }
@@ -93,36 +108,38 @@ class ProductListItem extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
-                    style: AppTypography.title.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    style: AppTypography.body.copyWith(
                       color: AppColors.grey900,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
-                        product.category,
-                        style: AppTypography.body.copyWith(
-                          fontSize: 14,
-                          color: AppColors.grey700,
-                        ),
-                      ),
-                      _buildDivider(),
-                      Text(
                         product.location,
                         style: AppTypography.body.copyWith(
-                          fontSize: 14,
                           color: AppColors.grey700,
+                          fontSize: 14,
                         ),
                       ),
-                      _buildDivider(),
-                      Text(
-                        _formatDate(product.expiryDate),
-                        style: AppTypography.body.copyWith(
-                          fontSize: 14,
-                          color: AppColors.grey700,
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getExpiryTextColor().withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _getExpiryText(),
+                          style: AppTypography.body.copyWith(
+                            color: _getExpiryTextColor(),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -130,8 +147,12 @@ class ProductListItem extends StatelessWidget {
                 ],
               ),
             ),
-            if (onEdit != null || onDelete != null) ...[
+            if (onEdit != null || onDelete != null)
               PopupMenuButton<String>(
+                icon: const Icon(
+                  Icons.more_vert,
+                  color: AppColors.grey700,
+                ),
                 onSelected: (value) {
                   if (value == 'edit' && onEdit != null) {
                     onEdit!();
@@ -152,27 +173,9 @@ class ProductListItem extends StatelessWidget {
                     ),
                 ],
               ),
-            ],
           ],
         ),
       ),
     );
-  }
-
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(
-        '|',
-        style: AppTypography.body.copyWith(
-          color: AppColors.grey300,
-          fontSize: 14,
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}. ${date.month}. ${date.day}';
   }
 }

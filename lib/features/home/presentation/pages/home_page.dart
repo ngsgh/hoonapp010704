@@ -12,6 +12,48 @@ import '../../../search/presentation/pages/search_page.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  void _showSortDialog(BuildContext context) {
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          '정렬',
+          style: AppTypography.title.copyWith(
+            color: AppColors.grey900,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('유통기한 순'),
+              leading: Radio<SortType>(
+                value: SortType.expiryDate,
+                groupValue: provider.sortType,
+                onChanged: (SortType? value) {
+                  provider.setSortType(value!);
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('등록일 순'),
+              leading: Radio<SortType>(
+                value: SortType.registrationDate,
+                groupValue: provider.sortType,
+                onChanged: (SortType? value) {
+                  provider.setSortType(value!);
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,6 +113,14 @@ class HomePage extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.small),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showSortDialog(context),
+        backgroundColor: AppColors.primary,
+        child: const Icon(
+          Icons.sort,
+          color: Colors.white,
+        ),
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, child) {
