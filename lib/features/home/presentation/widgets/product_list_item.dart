@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -33,7 +34,19 @@ class ProductListItem extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.grey300,
               borderRadius: BorderRadius.circular(8),
+              image: product.imageUrl != null
+                  ? DecorationImage(
+                      image: FileImage(File(product.imageUrl!)),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
+            child: product.imageUrl == null
+                ? const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppColors.grey500,
+                  )
+                : null,
           ),
           const SizedBox(width: AppSpacing.medium),
           Expanded(

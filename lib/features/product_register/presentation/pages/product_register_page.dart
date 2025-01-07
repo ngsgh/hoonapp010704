@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -8,6 +10,7 @@ import '../../domain/constants/storage_locations.dart';
 import 'package:provider/provider.dart';
 import '../../../home/presentation/providers/product_provider.dart';
 import '../../../home/domain/models/product.dart';
+import '../widgets/image_picker_bottom_sheet.dart';
 
 class ProductRegisterPage extends StatefulWidget {
   const ProductRegisterPage({super.key});
@@ -23,6 +26,8 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
   final _categoryController = TextEditingController();
   final _expiryDateController = TextEditingController();
   final _locationController = TextEditingController();
+  File? _selectedImage; // 선택된 이미지 저장
+  final _imagePicker = ImagePicker(); // ImagePicker 인스턴스
 
   // 카테고리 목록
   final List<String> _categories = [
@@ -85,6 +90,36 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
     );
   }
 
+  // 이미지 선택 bottom sheet 표시
+  void _showImagePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ImagePickerBottomSheet(
+        onCameraTap: () => _pickImage(ImageSource.camera),
+        onGalleryTap: () => _pickImage(ImageSource.gallery),
+      ),
+    );
+  }
+
+  // 이미지 선택 함수
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 80, // 이미지 품질 설정
+      );
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      // TODO: 에러 처리
+      print('이미지 선택 실패: $e');
+    }
+  }
+
   @override
   void dispose() {
     _productNameController.dispose();
@@ -110,6 +145,7 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
               location: _locationController.text,
               expiryDate: DateTime.parse(
                   _expiryDateController.text.replaceAll('. ', '-')),
+              imageUrl: _selectedImage?.path, // 이미지 경로 추가
             );
 
             // Provider를 통해 상품 추가
@@ -127,6 +163,45 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
             vertical: AppSpacing.medium,
           ),
           children: [
+            // 이미지 선택 영역
+            GestureDetector(
+              onTap: _showImagePicker,
+              child: Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: AppColors.grey300,
+                  borderRadius: BorderRadius.circular(12),
+                  image: _selectedImage != null
+                      ? DecorationImage(
+                          image: FileImage(_selectedImage!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: _selectedImage == null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.camera_alt,
+                              color: AppColors.grey500,
+                              size: 32,
+                            ),
+                            const SizedBox(height: AppSpacing.small),
+                            Text(
+                              '사진 추가',
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.grey500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.large),
             _buildInputField(
               label: '상품명',
               controller: _productNameController,

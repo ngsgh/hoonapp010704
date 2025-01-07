@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const white = Colors.white;
-  static const background = Colors.white;
+  static const background = Color(0xFFF2F4F6);
   static const primary = Color(0xFF1A73E9);
 
   // Grey scale
