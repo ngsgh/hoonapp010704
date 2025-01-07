@@ -14,6 +14,20 @@ class ProductProvider extends ChangeNotifier {
         .toList();
   }
 
+  // 카테고리별로 그룹화된 상품 목록
+  Map<String, List<Product>> get groupedProducts {
+    final grouped = <String, List<Product>>{};
+
+    for (final product in products) {
+      if (!grouped.containsKey(product.category)) {
+        grouped[product.category] = [];
+      }
+      grouped[product.category]!.add(product);
+    }
+
+    return grouped;
+  }
+
   String get selectedCategory => _selectedCategory;
 
   // 카테고리 목록

@@ -57,8 +57,7 @@ class ProductListItem extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.medium),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.grey300),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
@@ -67,7 +66,7 @@ class ProductListItem extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: AppColors.grey300,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
                 image: product.imageUrl != null
                     ? DecorationImage(
                         image: FileImage(File(product.imageUrl!)),

@@ -30,80 +30,111 @@ class HomePage extends StatelessWidget {
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, child) {
+          if (provider.products.isEmpty) {
+            return const Center(
+              child: Text('등록된 상품이 없습니다'),
+            );
+          }
+
           return Column(
             children: [
               // 카테고리 선택 영역
               Container(
                 color: AppColors.white,
                 padding: const EdgeInsets.all(AppSpacing.medium),
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
-                          ),
-                          builder: (context) =>
-                              _buildCategorySheet(context, provider),
-                        );
-                      },
-                      child: Row(
-                        children: [
-                          Text(
-                            provider.selectedCategory,
-                            style: AppTypography.title.copyWith(
-                              fontSize: 18,
-                              color: AppColors.grey900,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: AppColors.grey900,
-                          ),
-                        ],
+                child: InkWell(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                       ),
-                    ),
-                  ],
+                      builder: (context) =>
+                          _buildCategorySheet(context, provider),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      Text(
+                        provider.selectedCategory,
+                        style: AppTypography.title.copyWith(
+                          fontSize: 18,
+                          color: AppColors.grey900,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppColors.grey900,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               // 상품 리스트
               Expanded(
-                child: provider.products.isEmpty
-                    ? const Center(
-                        child: Text('등록된 상품이 없습니다'),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(AppSpacing.medium),
-                        itemCount: provider.products.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: AppSpacing.medium),
-                        itemBuilder: (context, index) {
-                          final product = provider.products[index];
-                          return ProductListItem(
-                            product: product,
-                            onEdit: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ProductRegisterPage(
-                                    product: product,
-                                    index: index,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(AppSpacing.medium),
+                  itemCount: provider.groupedProducts.length,
+                  itemBuilder: (context, categoryIndex) {
+                    final category =
+                        provider.groupedProducts.keys.toList()[categoryIndex];
+                    final products = provider.groupedProducts[category] ?? [];
+
+                    if (products.isEmpty) return const SizedBox.shrink();
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 4,
+                            bottom: AppSpacing.small,
+                          ),
+                          child: Text(
+                            category,
+                            style: AppTypography.body.copyWith(
+                              color: AppColors.grey700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        ...products.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final product = entry.value;
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: index < products.length - 1
+                                  ? AppSpacing.medium
+                                  : 24,
+                            ),
+                            child: ProductListItem(
+                              product: product,
+                              onEdit: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProductRegisterPage(
+                                      product: product,
+                                      index: provider.products.indexOf(product),
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            onDelete: () {
-                              provider.deleteProduct(index);
-                            },
+                                );
+                              },
+                              onDelete: () {
+                                provider.deleteProduct(
+                                    provider.products.indexOf(product));
+                              },
+                            ),
                           );
-                        },
-                      ),
+                        }).toList(),
+                      ],
+                    );
+                  },
+                ),
               ),
             ],
           );
@@ -124,7 +155,6 @@ class HomePage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 상단 드래그 핸들
               Center(
                 child: Container(
                   width: 40,
@@ -154,7 +184,6 @@ class HomePage extends StatelessWidget {
                   },
                 );
               }).toList(),
-              // 하단 여백
               const SizedBox(height: AppSpacing.medium),
             ],
           ),
