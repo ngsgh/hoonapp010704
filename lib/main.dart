@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_typography.dart';
@@ -10,8 +11,20 @@ import 'features/shopping/presentation/pages/shopping_page.dart';
 import 'features/recipe/presentation/pages/recipe_page.dart';
 import 'features/product_info/presentation/pages/product_info_page.dart';
 import 'features/home/presentation/providers/product_provider.dart';
+import 'features/home/domain/models/product.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Hive 초기화
+  await Hive.initFlutter();
+
+  // Product 어댑터 등록
+  Hive.registerAdapter(ProductAdapter());
+
+  // Products 박스 열기
+  await Hive.openBox<Product>('products');
+
   runApp(const MyApp());
 }
 

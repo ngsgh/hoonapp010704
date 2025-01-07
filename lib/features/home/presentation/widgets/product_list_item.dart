@@ -1,63 +1,34 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/constants/colors.dart';
+import '../../../../core/constants/spacing.dart';
+import '../../../../core/constants/typography.dart';
+import '../../../../core/utils/image_storage_util.dart';
 import '../../domain/models/product.dart';
 
 class ProductListItem extends StatelessWidget {
   final Product product;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const ProductListItem({
     super.key,
     required this.product,
+    this.onTap,
     this.onEdit,
     this.onDelete,
   });
 
-  String _formatDate(DateTime date) {
-    return '${date.year}. ${date.month}. ${date.day}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: () {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('상품 관리'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.edit),
-                  title: const Text('수정'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    onEdit?.call();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('삭제', style: TextStyle(color: Colors.red)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    onDelete?.call();
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    return InkWell(
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.medium),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           children: [
@@ -66,20 +37,54 @@ class ProductListItem extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: AppColors.grey300,
-                borderRadius: BorderRadius.circular(10),
-                image: product.imageUrl != null
-                    ? DecorationImage(
-                        image: FileImage(File(product.imageUrl!)),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: product.imageUrl == null
                   ? const Icon(
                       Icons.image_not_supported_outlined,
                       color: AppColors.grey500,
                     )
-                  : null,
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: FutureBuilder<bool>(
+                        future:
+                            ImageStorageUtil.checkImageExists(product.imageUrl),
+                        builder: (context, snapshot) {
+                          if (snapshot.data == true) {
+                            return FutureBuilder<String>(
+                              future: ImageStorageUtil.getFullPath(
+                                  product.imageUrl!.contains('product_images/')
+                                      ? product.imageUrl!.substring(product
+                                          .imageUrl!
+                                          .indexOf('product_images/'))
+                                      : product.imageUrl!),
+                              builder: (context, pathSnapshot) {
+                                if (pathSnapshot.hasData) {
+                                  return Image.file(
+                                    File(pathSnapshot.data!),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      debugPrint('이미지 로드 에러: $error');
+                                      debugPrint(
+                                          '시도한 경로: ${pathSnapshot.data}');
+                                      return const Icon(
+                                        Icons.error_outline,
+                                        color: AppColors.grey500,
+                                      );
+                                    },
+                                  );
+                                }
+                                return const CircularProgressIndicator();
+                              },
+                            );
+                          }
+                          return const Icon(
+                            Icons.image_not_supported_outlined,
+                            color: AppColors.grey500,
+                          );
+                        },
+                      ),
+                    ),
             ),
             const SizedBox(width: AppSpacing.medium),
             Expanded(
@@ -125,6 +130,29 @@ class ProductListItem extends StatelessWidget {
                 ],
               ),
             ),
+            if (onEdit != null || onDelete != null) ...[
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit' && onEdit != null) {
+                    onEdit!();
+                  } else if (value == 'delete' && onDelete != null) {
+                    onDelete!();
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (onEdit != null)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('수정'),
+                    ),
+                  if (onDelete != null)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('삭제'),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -142,5 +170,9 @@ class ProductListItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}. ${date.month}. ${date.day}';
   }
 }

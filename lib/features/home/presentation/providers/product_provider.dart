@@ -1,36 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../domain/models/product.dart';
+import '../../../../core/utils/image_storage_util.dart';
+import 'dart:io';
 
 class ProductProvider extends ChangeNotifier {
-  final List<Product> _products = [];
-  String _selectedCategory = '전체'; // 선택된 카테고리
+  final Box<Product> _box = Hive.box<Product>('products');
 
-  List<Product> get products {
-    if (_selectedCategory == '전체') {
-      return _products;
-    }
-    return _products
-        .where((product) => product.category == _selectedCategory)
-        .toList();
-  }
+  List<Product> get products => _box.values.toList();
 
-  // 카테고리별로 그룹화된 상품 목록
-  Map<String, List<Product>> get groupedProducts {
-    final grouped = <String, List<Product>>{};
-
-    for (final product in products) {
-      if (!grouped.containsKey(product.category)) {
-        grouped[product.category] = [];
-      }
-      grouped[product.category]!.add(product);
-    }
-
-    return grouped;
-  }
-
+  String _selectedCategory = '전체';
   String get selectedCategory => _selectedCategory;
 
-  // 카테고리 목록
   List<String> get categories => [
         '전체',
         '유제품',
@@ -48,18 +29,64 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addProduct(Product product) {
-    _products.add(product);
+  Future<void> addProduct(Product product) async {
+    try {
+      final productToSave = Product(
+        name: product.name,
+        category: product.category,
+        location: product.location,
+        expiryDate: product.expiryDate,
+        imageUrl: product.imageUrl,
+      );
+
+      await _box.add(productToSave);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('상품 저장 오류: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateProduct(int index, Product product) async {
+    try {
+      final productToSave = Product(
+        name: product.name,
+        category: product.category,
+        location: product.location,
+        expiryDate: product.expiryDate,
+        imageUrl: product.imageUrl,
+      );
+
+      await _box.putAt(index, productToSave);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('상품 수정 오류: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteProduct(int index) async {
+    final product = _box.getAt(index);
+    if (product?.imageUrl != null) {
+      await ImageStorageUtil.deleteImage(product!.imageUrl);
+    }
+    await _box.deleteAt(index);
     notifyListeners();
   }
 
-  void updateProduct(int index, Product product) {
-    _products[index] = product;
-    notifyListeners();
-  }
+  Map<String, List<Product>> get groupedProducts {
+    final grouped = <String, List<Product>>{};
+    final filteredProducts = _selectedCategory == '전체'
+        ? products
+        : products.where((p) => p.category == _selectedCategory).toList();
 
-  void deleteProduct(int index) {
-    _products.removeAt(index);
-    notifyListeners();
+    for (final product in filteredProducts) {
+      if (!grouped.containsKey(product.category)) {
+        grouped[product.category] = [];
+      }
+      grouped[product.category]!.add(product);
+    }
+
+    return grouped;
   }
 }

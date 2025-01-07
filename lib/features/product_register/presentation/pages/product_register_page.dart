@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -11,6 +13,7 @@ import 'package:provider/provider.dart';
 import '../../../home/presentation/providers/product_provider.dart';
 import '../../../home/domain/models/product.dart';
 import '../widgets/image_picker_bottom_sheet.dart';
+import '../../../../core/utils/image_storage_util.dart';
 
 class ProductRegisterPage extends StatefulWidget {
   final Product? product; // 수정할 상품
@@ -34,24 +37,52 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
   final _expiryDateController = TextEditingController();
   final _imagePicker = ImagePicker();
   File? _selectedImage;
+  DateTime? _selectedDate;
+  String? _savedImagePath;
 
   @override
   void initState() {
     super.initState();
     if (widget.product != null) {
-      // 수정 모드일 경우 기존 데이터로 초기화
       _productNameController.text = widget.product!.name;
       _categoryController.text = widget.product!.category;
       _locationController.text = widget.product!.location;
+      _selectedDate = widget.product!.expiryDate;
       _expiryDateController.text = _formatDate(widget.product!.expiryDate);
+
+      // 기존 이미지가 있다면 파일 존재 여부 확인
       if (widget.product!.imageUrl != null) {
-        _selectedImage = File(widget.product!.imageUrl!);
+        final file = File(widget.product!.imageUrl!);
+        file.exists().then((exists) {
+          if (exists) {
+            setState(() {
+              _selectedImage = file;
+            });
+          } else {
+            debugPrint('기존 이미지 파일을 찾을 수 없음: ${widget.product!.imageUrl}');
+          }
+        });
       }
     }
   }
 
   String _formatDate(DateTime date) {
     return '${date.year}. ${date.month}. ${date.day}';
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _expiryDateController.text = _formatDate(picked);
+      });
+    }
   }
 
   @override
@@ -139,18 +170,56 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
   // 이미지 선택 함수
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        imageQuality: 80, // 이미지 품질 설정
-      );
-      if (image != null) {
+      final pickedFile = await _imagePicker.pickImage(source: source);
+      if (pickedFile != null) {
+        debugPrint('선택된 이미지: ${pickedFile.path}');
+
+        // 임시 파일을 앱 디렉토리에 복사
+        final savedPath =
+            await ImageStorageUtil.saveImage(File(pickedFile.path));
+        debugPrint('저장된 이미지 상대 경로: $savedPath');
+
+        // 저장된 이미지 파일 가져오기
+        final fullPath = await ImageStorageUtil.getFullPath(savedPath);
+        debugPrint('저장된 이미지 전체 경로: $fullPath');
+
         setState(() {
-          _selectedImage = File(image.path);
+          _selectedImage = File(fullPath); // 저장된 파일로 설정
+          _savedImagePath = savedPath; // 상대 경로 저장
         });
       }
-    } catch (e) {
-      // TODO: 에러 처리
-      print('이미지 선택 실패: $e');
+    } catch (e, stack) {
+      debugPrint('이미지 선택/저장 오류: $e');
+      debugPrint(stack.toString());
+    }
+  }
+
+  void _handleSubmit() async {
+    if (_formKey.currentState!.validate()) {
+      // 상대 경로를 사용하여 Product 생성
+      final product = Product(
+        name: _productNameController.text,
+        category: _categoryController.text,
+        location: _locationController.text,
+        expiryDate: _selectedDate ?? DateTime.now(),
+        imageUrl: _savedImagePath, // 이미 상대 경로
+      );
+
+      final provider = context.read<ProductProvider>();
+
+      if (widget.product != null && widget.index != null) {
+        if (widget.product!.imageUrl != null &&
+            widget.product!.imageUrl != _savedImagePath) {
+          await ImageStorageUtil.deleteImage(widget.product!.imageUrl);
+        }
+        await provider.updateProduct(widget.index!, product);
+      } else {
+        await provider.addProduct(product);
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -159,7 +228,7 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: DetailAppBar(
-        title: '의견',
+        title: '상품등록',
         rightButtonText: '등록',
         onRightButtonTap: () {
           if (_formKey.currentState?.validate() ?? false) {
