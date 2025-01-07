@@ -13,7 +13,14 @@ import '../../../home/domain/models/product.dart';
 import '../widgets/image_picker_bottom_sheet.dart';
 
 class ProductRegisterPage extends StatefulWidget {
-  const ProductRegisterPage({super.key});
+  final Product? product; // 수정할 상품
+  final int? index; // 수정할 상품의 인덱스
+
+  const ProductRegisterPage({
+    super.key,
+    this.product,
+    this.index,
+  });
 
   @override
   State<ProductRegisterPage> createState() => _ProductRegisterPageState();
@@ -21,13 +28,40 @@ class ProductRegisterPage extends StatefulWidget {
 
 class _ProductRegisterPageState extends State<ProductRegisterPage> {
   final _formKey = GlobalKey<FormState>();
-
   final _productNameController = TextEditingController();
   final _categoryController = TextEditingController();
-  final _expiryDateController = TextEditingController();
   final _locationController = TextEditingController();
-  File? _selectedImage; // 선택된 이미지 저장
-  final _imagePicker = ImagePicker(); // ImagePicker 인스턴스
+  final _expiryDateController = TextEditingController();
+  final _imagePicker = ImagePicker();
+  File? _selectedImage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.product != null) {
+      // 수정 모드일 경우 기존 데이터로 초기화
+      _productNameController.text = widget.product!.name;
+      _categoryController.text = widget.product!.category;
+      _locationController.text = widget.product!.location;
+      _expiryDateController.text = _formatDate(widget.product!.expiryDate);
+      if (widget.product!.imageUrl != null) {
+        _selectedImage = File(widget.product!.imageUrl!);
+      }
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}. ${date.month}. ${date.day}';
+  }
+
+  @override
+  void dispose() {
+    _productNameController.dispose();
+    _categoryController.dispose();
+    _locationController.dispose();
+    _expiryDateController.dispose();
+    super.dispose();
+  }
 
   // 카테고리 목록
   final List<String> _categories = [
@@ -118,15 +152,6 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
       // TODO: 에러 처리
       print('이미지 선택 실패: $e');
     }
-  }
-
-  @override
-  void dispose() {
-    _productNameController.dispose();
-    _categoryController.dispose();
-    _expiryDateController.dispose();
-    _locationController.dispose();
-    super.dispose();
   }
 
   @override

@@ -10,4 +10,14 @@ class ProductProvider extends ChangeNotifier {
     _products.add(product);
     notifyListeners();
   }
+
+  void updateProduct(int index, Product product) {
+    _products[index] = product;
+    notifyListeners();
+  }
+
+  void deleteProduct(int index) {
+    _products.removeAt(index);
+    notifyListeners();
+  }
 }

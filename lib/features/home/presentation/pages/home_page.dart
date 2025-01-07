@@ -6,6 +6,7 @@ import '../../domain/models/product.dart';
 import '../widgets/product_list_item.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
+import '../../../product_register/presentation/pages/product_register_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -40,9 +41,26 @@ class HomePage extends StatelessWidget {
             itemCount: provider.products.length,
             separatorBuilder: (context, index) =>
                 const SizedBox(height: AppSpacing.medium),
-            itemBuilder: (context, index) => ProductListItem(
-              product: provider.products[index],
-            ),
+            itemBuilder: (context, index) {
+              final product = provider.products[index];
+              return ProductListItem(
+                product: product,
+                onEdit: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductRegisterPage(
+                        product: product,
+                        index: index,
+                      ),
+                    ),
+                  );
+                },
+                onDelete: () {
+                  provider.deleteProduct(index);
+                },
+              );
+            },
           );
         },
       ),
