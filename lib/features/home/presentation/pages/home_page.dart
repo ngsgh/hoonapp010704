@@ -7,6 +7,7 @@ import '../widgets/product_list_item.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
 import '../../../product_register/presentation/pages/product_register_page.dart';
+import '../../../search/presentation/pages/search_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -15,57 +16,66 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(18),
-        child: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        title: Consumer<ProductProvider>(
+          builder: (context, provider, child) {
+            return TextButton(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  builder: (context) => _buildCategorySheet(context, provider),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    provider.selectedCategory,
+                    style: AppTypography.title.copyWith(
+                      color: AppColors.grey900,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppColors.grey900,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.search,
+              color: AppColors.primary,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SearchPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: AppSpacing.small),
+        ],
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, child) {
           return Column(
             children: [
-              // 카테고리 선택 영역
-              Container(
-                color: AppColors.background,
-                padding: const EdgeInsets.only(
-                  left: AppSpacing.medium,
-                  right: AppSpacing.medium,
-                  bottom: AppSpacing.small,
-                ),
-                child: InkWell(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
-                      ),
-                      builder: (context) =>
-                          _buildCategorySheet(context, provider),
-                    );
-                  },
-                  child: Row(
-                    children: [
-                      Text(
-                        provider.selectedCategory,
-                        style: AppTypography.title.copyWith(
-                          fontSize: 18,
-                          color: AppColors.grey900,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: AppColors.grey900,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
               // 상품 리스트 또는 빈 상태 메시지
               Expanded(
                 child: provider.products.isEmpty
