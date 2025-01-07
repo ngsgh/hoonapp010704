@@ -15,33 +15,25 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        title: Text(
-          '홈',
-          style: AppTypography.title.copyWith(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: AppColors.grey900,
-          ),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(18),
+        child: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
         ),
-        centerTitle: true,
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, child) {
-          if (provider.products.isEmpty) {
-            return const Center(
-              child: Text('등록된 상품이 없습니다'),
-            );
-          }
-
           return Column(
             children: [
               // 카테고리 선택 영역
               Container(
-                color: AppColors.white,
-                padding: const EdgeInsets.all(AppSpacing.medium),
+                color: AppColors.background,
+                padding: const EdgeInsets.only(
+                  left: AppSpacing.medium,
+                  right: AppSpacing.medium,
+                  bottom: AppSpacing.small,
+                ),
                 child: InkWell(
                   onTap: () {
                     showModalBottomSheet(
@@ -74,67 +66,74 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ),
-              // 상품 리스트
+              // 상품 리스트 또는 빈 상태 메시지
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.medium),
-                  itemCount: provider.groupedProducts.length,
-                  itemBuilder: (context, categoryIndex) {
-                    final category =
-                        provider.groupedProducts.keys.toList()[categoryIndex];
-                    final products = provider.groupedProducts[category] ?? [];
+                child: provider.products.isEmpty
+                    ? const Center(
+                        child: Text('등록된 상품이 없습니다'),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(AppSpacing.medium),
+                        itemCount: provider.groupedProducts.length,
+                        itemBuilder: (context, categoryIndex) {
+                          final category = provider.groupedProducts.keys
+                              .toList()[categoryIndex];
+                          final products =
+                              provider.groupedProducts[category] ?? [];
 
-                    if (products.isEmpty) return const SizedBox.shrink();
+                          if (products.isEmpty) return const SizedBox.shrink();
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 4,
-                            bottom: AppSpacing.small,
-                          ),
-                          child: Text(
-                            category,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.grey700,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        ...products.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final product = entry.value;
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index < products.length - 1
-                                  ? AppSpacing.medium
-                                  : 24,
-                            ),
-                            child: ProductListItem(
-                              product: product,
-                              onEdit: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ProductRegisterPage(
-                                      product: product,
-                                      index: provider.products.indexOf(product),
-                                    ),
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 4,
+                                  bottom: AppSpacing.small,
+                                ),
+                                child: Text(
+                                  category,
+                                  style: AppTypography.body.copyWith(
+                                    color: AppColors.grey700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              ...products.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final product = entry.value;
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: index < products.length - 1
+                                        ? AppSpacing.medium
+                                        : 24,
+                                  ),
+                                  child: ProductListItem(
+                                    product: product,
+                                    onEdit: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              ProductRegisterPage(
+                                            product: product,
+                                            index: provider.products
+                                                .indexOf(product),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    onDelete: () {
+                                      provider.deleteProduct(
+                                          provider.products.indexOf(product));
+                                    },
                                   ),
                                 );
-                              },
-                              onDelete: () {
-                                provider.deleteProduct(
-                                    provider.products.indexOf(product));
-                              },
-                            ),
+                              }).toList(),
+                            ],
                           );
-                        }).toList(),
-                      ],
-                    );
-                  },
-                ),
+                        },
+                      ),
               ),
             ],
           );
