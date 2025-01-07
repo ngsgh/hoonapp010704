@@ -1,36 +1,31 @@
 import 'package:flutter/material.dart';
-import '../constants/platform_check.dart';
+import 'app_colors.dart';
 
 class AppTypography {
-  static TextTheme get textTheme {
-    if (PlatformCheck.isIOS) {
-      return const TextTheme(
-        displayLarge: TextStyle(
-          fontFamily: '.SF Pro Display',
-          fontSize: 34,
-          fontWeight: FontWeight.bold,
-        ),
-        displayMedium: TextStyle(
-          fontFamily: '.SF Pro Display',
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-        ),
-        // ... iOS 스타일 계속
-      );
-    }
+  static const title = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+  );
 
-    return const TextTheme(
-      displayLarge: TextStyle(
-        fontFamily: 'Roboto',
-        fontSize: 34,
-        fontWeight: FontWeight.bold,
-      ),
-      displayMedium: TextStyle(
-        fontFamily: 'Roboto',
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-      ),
-      // ... Material 스타일 계속
-    );
-  }
+  static const button = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const label = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+  );
+
+  static const body = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+  );
+
+  static final textTheme = TextTheme(
+    titleLarge: title.copyWith(color: AppColors.grey900),
+    bodyLarge: body.copyWith(color: AppColors.grey900),
+    bodyMedium: label.copyWith(color: AppColors.grey700),
+    labelLarge: button.copyWith(color: AppColors.primary),
+  );
 }
