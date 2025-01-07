@@ -2,31 +2,19 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../domain/models/product.dart';
-import '../widgets/product_list_item.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class ProductInfoPage extends StatelessWidget {
+  const ProductInfoPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // TODO: 실제 데이터로 교체
-    final List<Product> products = [
-      Product(
-        name: '트라이베이컨',
-        category: '육류',
-        location: '주 냉장',
-        expiryDate: DateTime(2025, 4, 5),
-      ),
-    ];
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
         title: Text(
-          '홈',
+          '상품정보',
           style: AppTypography.title.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -35,14 +23,9 @@ class HomePage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: ListView.separated(
+      body: ListView(
         padding: const EdgeInsets.all(AppSpacing.medium),
-        itemCount: products.length,
-        separatorBuilder: (context, index) =>
-            const SizedBox(height: AppSpacing.medium),
-        itemBuilder: (context, index) => ProductListItem(
-          product: products[index],
-        ),
+        children: const [], // TODO: 상품정보 리스트 구현
       ),
     );
   }

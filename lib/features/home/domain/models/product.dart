@@ -1,13 +1,13 @@
 class Product {
   final String name;
   final String category;
-  final DateTime expiryDate;
   final String location;
+  final DateTime expiryDate;
 
-  const Product({
+  Product({
     required this.name,
     required this.category,
-    required this.expiryDate,
     required this.location,
+    required this.expiryDate,
   });
 }

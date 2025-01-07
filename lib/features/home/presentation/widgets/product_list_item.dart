@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../domain/models/product.dart';
 
 class ProductListItem extends StatelessWidget {
@@ -10,23 +12,27 @@ class ProductListItem extends StatelessWidget {
     required this.product,
   });
 
+  String _formatDate(DateTime date) {
+    return '${date.year}. ${date.month}. ${date.day}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
+      padding: const EdgeInsets.all(AppSpacing.medium),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        boxShadow: AppShadows.card,
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.grey300),
       ),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
-            decoration: const BoxDecoration(
-              color: AppColors.grey100,
-              shape: BoxShape.circle,
+            decoration: BoxDecoration(
+              color: AppColors.grey300,
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
           const SizedBox(width: AppSpacing.medium),
@@ -36,34 +42,37 @@ class ProductListItem extends StatelessWidget {
               children: [
                 Text(
                   product.name,
-                  style: AppTypography.productTitle,
+                  style: AppTypography.title.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.grey900,
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.small),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     Text(
-                      product.location,
-                      style: AppTypography.productInfo,
-                    ),
-                    Text(
-                      ' | ',
-                      style: AppTypography.productInfo.copyWith(
-                        color: AppColors.grey300,
-                      ),
-                    ),
-                    Text(
                       product.category,
-                      style: AppTypography.productInfo,
-                    ),
-                    Text(
-                      ' | ',
-                      style: AppTypography.productInfo.copyWith(
-                        color: AppColors.grey300,
+                      style: AppTypography.body.copyWith(
+                        fontSize: 14,
+                        color: AppColors.grey700,
                       ),
                     ),
+                    _buildDivider(),
                     Text(
-                      '${product.expiryDate.year}.${product.expiryDate.month}.${product.expiryDate.day}',
-                      style: AppTypography.productInfo,
+                      product.location,
+                      style: AppTypography.body.copyWith(
+                        fontSize: 14,
+                        color: AppColors.grey700,
+                      ),
+                    ),
+                    _buildDivider(),
+                    Text(
+                      _formatDate(product.expiryDate),
+                      style: AppTypography.body.copyWith(
+                        fontSize: 14,
+                        color: AppColors.grey700,
+                      ),
                     ),
                   ],
                 ),
@@ -71,6 +80,19 @@ class ProductListItem extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text(
+        '|',
+        style: AppTypography.body.copyWith(
+          color: AppColors.grey300,
+          fontSize: 14,
+        ),
       ),
     );
   }
