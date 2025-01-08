@@ -11,21 +11,33 @@ class ShoppingPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
         title: Text(
           '쇼핑',
           style: AppTypography.title.copyWith(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
             color: AppColors.grey900,
           ),
         ),
-        centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.medium),
-        children: const [], // TODO: 쇼핑 리스트 구현
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.shopping_bag,
+              size: 64,
+              color: AppColors.grey500,
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Text(
+              '준비 중인 기능입니다',
+              style: AppTypography.body.copyWith(
+                color: AppColors.grey700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

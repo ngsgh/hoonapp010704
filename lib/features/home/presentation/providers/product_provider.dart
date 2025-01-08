@@ -11,7 +11,10 @@ enum SortType {
 }
 
 class ProductProvider extends ChangeNotifier {
-  final Box<Product> _box = Hive.box<Product>('products');
+  final Box<Product> _box;
+
+  ProductProvider(this._box);
+
   SortType _sortType = SortType.none;
 
   List<Product> get products => _box.values.toList();
