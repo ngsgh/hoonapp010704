@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'features/home/domain/models/product.dart';
 import 'features/home/presentation/providers/product_provider.dart';
 import 'features/home/presentation/pages/home_page.dart';
@@ -17,6 +18,9 @@ import 'features/product_master/presentation/providers/product_master_provider.d
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase 초기화
+  await Firebase.initializeApp();
 
   await Hive.initFlutter();
   Hive.registerAdapter(ProductAdapter());
