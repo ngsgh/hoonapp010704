@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -8,177 +9,106 @@ import '../../domain/models/product.dart';
 
 class ProductListItem extends StatelessWidget {
   final Product product;
-  final VoidCallback? onTap;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final Widget? leading;
 
   const ProductListItem({
     super.key,
     required this.product,
-    this.onTap,
-    this.onEdit,
-    this.onDelete,
+    required this.onEdit,
+    required this.onDelete,
+    this.leading,
   });
-
-  Color _getExpiryColor() {
-    final daysUntilExpiry =
-        product.expiryDate.difference(DateTime.now()).inDays;
-    if (daysUntilExpiry <= 3) {
-      return AppColors.primary.withOpacity(0.1);
-    } else if (daysUntilExpiry <= 7) {
-      return AppColors.primary.withOpacity(0.05);
-    }
-    return AppColors.white;
-  }
-
-  String _getExpiryText() {
-    final daysUntilExpiry =
-        product.expiryDate.difference(DateTime.now()).inDays;
-    if (daysUntilExpiry < 0) {
-      return '유통기한 만료';
-    } else if (daysUntilExpiry == 0) {
-      return '오늘 만료';
-    } else {
-      return 'D-$daysUntilExpiry';
-    }
-  }
-
-  Color _getExpiryTextColor() {
-    final daysUntilExpiry =
-        product.expiryDate.difference(DateTime.now()).inDays;
-    if (daysUntilExpiry <= 3) {
-      return AppColors.primary;
-    }
-    return AppColors.grey700;
-  }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.medium),
-        decoration: BoxDecoration(
-          color: _getExpiryColor(),
-          borderRadius: BorderRadius.circular(8),
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(
+          color: AppColors.grey300,
+          width: 1,
         ),
-        child: Row(
-          children: [
+      ),
+      child: ListTile(
+        leading: leading ??
             Container(
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: AppColors.grey300,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(4),
               ),
-              child: product.imageUrl == null
-                  ? const Icon(
-                      Icons.image_not_supported_outlined,
-                      color: AppColors.grey500,
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: FutureBuilder<String>(
-                        future: ImageStorageUtil.getFullPath(product.imageUrl!
-                                .contains('product_images/')
-                            ? product.imageUrl!.substring(
-                                product.imageUrl!.indexOf('product_images/'))
-                            : product.imageUrl!),
-                        builder: (context, pathSnapshot) {
-                          if (pathSnapshot.hasData) {
-                            return Image.file(
-                              File(pathSnapshot.data!),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                debugPrint('이미지 로드 에러: $error');
-                                debugPrint('시도한 경로: ${pathSnapshot.data}');
-                                return const Icon(
-                                  Icons.error_outline,
-                                  color: AppColors.grey500,
-                                );
-                              },
-                            );
-                          }
-                          return const CircularProgressIndicator();
-                        },
-                      ),
-                    ),
-            ),
-            const SizedBox(width: AppSpacing.medium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: AppTypography.body.copyWith(
-                      color: AppColors.grey900,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        product.location,
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.grey700,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getExpiryTextColor().withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _getExpiryText(),
-                          style: AppTypography.body.copyWith(
-                            color: _getExpiryTextColor(),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              child: const Icon(
+                Icons.image_not_supported_outlined,
+                color: AppColors.grey500,
+                size: 24,
               ),
             ),
-            if (onEdit != null || onDelete != null)
-              PopupMenuButton<String>(
-                icon: const Icon(
-                  Icons.more_vert,
-                  color: AppColors.grey700,
-                ),
-                onSelected: (value) {
-                  if (value == 'edit' && onEdit != null) {
-                    onEdit!();
-                  } else if (value == 'delete' && onDelete != null) {
-                    onDelete!();
-                  }
-                },
-                itemBuilder: (context) => [
-                  if (onEdit != null)
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Text('수정'),
-                    ),
-                  if (onDelete != null)
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('삭제'),
-                    ),
-                ],
+        title: Text(
+          product.name,
+          style: AppTypography.body.copyWith(
+            color: AppColors.grey900,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              product.location,
+              style: AppTypography.caption.copyWith(
+                color: AppColors.grey700,
               ),
+            ),
+            Text(
+              '${DateFormat('yyyy년 MM월 dd일').format(product.expiryDate)} ${_getDaysUntilExpiry(product.expiryDate)}',
+              style: AppTypography.caption.copyWith(
+                color: _getExpiryColor(product.expiryDate),
+              ),
+            ),
+          ],
+        ),
+        trailing: PopupMenuButton(
+          icon: const Icon(
+            Icons.more_vert,
+            color: AppColors.grey700,
+          ),
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              child: const Text('수정'),
+              onTap: onEdit,
+            ),
+            PopupMenuItem(
+              child: const Text('삭제'),
+              onTap: onDelete,
+            ),
           ],
         ),
       ),
     );
+  }
+
+  String _getDaysUntilExpiry(DateTime expiryDate) {
+    final days = expiryDate.difference(DateTime.now()).inDays;
+    if (days < 0) {
+      return '(${days.abs()}일 지남)';
+    } else if (days == 0) {
+      return '(오늘 만료)';
+    } else {
+      return '($days일 남음)';
+    }
+  }
+
+  Color _getExpiryColor(DateTime expiryDate) {
+    final days = expiryDate.difference(DateTime.now()).inDays;
+    if (days < 0) {
+      return AppColors.error;
+    } else if (days <= 7) {
+      return AppColors.warning;
+    } else {
+      return AppColors.grey700;
+    }
   }
 }

@@ -1,10 +1,9 @@
 import 'package:hive/hive.dart';
 import '../../../../core/utils/image_storage_util.dart';
-import '../../../product_master/domain/models/product_master.dart';
 
-part 'product.g.dart'; // 자동 생성될 파일
+part 'product.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 1)
 class Product extends HiveObject {
   @HiveField(0)
   final String name;
@@ -22,13 +21,13 @@ class Product extends HiveObject {
   final String? imageUrl;
 
   @HiveField(5)
-  final String? masterId; // 마스터 상품 ID
+  final String? masterId;
 
   @HiveField(6)
-  final String? purchaseUrl; // 구매 URL
+  final String? storeName;
 
   @HiveField(7)
-  final String? storeName; // 구매처 이름
+  final String? purchaseUrl;
 
   Product({
     required this.name,
@@ -37,52 +36,55 @@ class Product extends HiveObject {
     required this.expiryDate,
     this.imageUrl,
     this.masterId,
-    this.purchaseUrl,
     this.storeName,
+    this.purchaseUrl,
   });
 
-  // 이미지 경로를 상대 경로로 변환하는 팩토리 생성자
-  factory Product.create({
-    required String name,
-    required String category,
-    required String location,
-    required DateTime expiryDate,
+  Product copyWith({
+    String? name,
+    String? category,
+    String? location,
+    DateTime? expiryDate,
     String? imageUrl,
     String? masterId,
-    String? purchaseUrl,
     String? storeName,
+    String? purchaseUrl,
   }) {
-    // 이미지 URL이 있는 경우 상대 경로로 변환
-    final relativePath =
-        imageUrl != null ? ImageStorageUtil.getRelativePath(imageUrl) : null;
-
     return Product(
-      name: name,
-      category: category,
-      location: location,
-      expiryDate: expiryDate,
-      imageUrl: relativePath,
-      masterId: masterId,
-      purchaseUrl: purchaseUrl,
-      storeName: storeName,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      location: location ?? this.location,
+      expiryDate: expiryDate ?? this.expiryDate,
+      imageUrl: imageUrl ?? this.imageUrl,
+      masterId: masterId ?? this.masterId,
+      storeName: storeName ?? this.storeName,
+      purchaseUrl: purchaseUrl ?? this.purchaseUrl,
     );
   }
 
-  // 마스터 상품으로부터 생성하는 팩토리 생성자
-  factory Product.fromMaster({
-    required ProductMaster master,
-    required String location,
-    required DateTime expiryDate,
-  }) {
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'category': category,
+      'location': location,
+      'expiryDate': expiryDate.toIso8601String(),
+      'imageUrl': imageUrl,
+      'masterId': masterId,
+      'storeName': storeName,
+      'purchaseUrl': purchaseUrl,
+    };
+  }
+
+  factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      name: master.name,
-      category: master.category,
-      location: location,
-      expiryDate: expiryDate,
-      imageUrl: master.imageUrl,
-      masterId: master.key?.toString(),
-      purchaseUrl: master.purchaseUrl,
-      storeName: master.storeName,
+      name: json['name'] as String,
+      category: json['category'] as String,
+      location: json['location'] as String,
+      expiryDate: DateTime.parse(json['expiryDate'] as String),
+      imageUrl: json['imageUrl'] as String?,
+      masterId: json['masterId'] as String?,
+      storeName: json['storeName'] as String?,
+      purchaseUrl: json['purchaseUrl'] as String?,
     );
   }
 }

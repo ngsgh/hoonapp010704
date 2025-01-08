@@ -14,6 +14,9 @@ import '../../../product_master/domain/models/product_master.dart';
 import '../../../product_master/presentation/providers/product_master_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import '../../../../core/services/naver_shopping_service.dart';
+import '../../../product_master/presentation/pages/product_master_edit_page.dart';
 
 class ProductRegisterPage extends StatefulWidget {
   final Product? product;
@@ -42,6 +45,9 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
   bool _saveAsTemplate = false;
   bool _isSearching = false;
   String? _selectedMasterId;
+  final _naverShoppingService = NaverShoppingService();
+  String _searchText = '';
+  List<ProductMaster> _searchResults = [];
 
   @override
   void initState() {
@@ -81,6 +87,43 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
     });
   }
 
+  Future<void> _scanBarcode() async {
+    try {
+      final barcode = await FlutterBarcodeScanner.scanBarcode(
+        '#ff6666',
+        '취소',
+        true,
+        ScanMode.BARCODE,
+      );
+
+      if (barcode != '-1') {
+        // -1은 취소를 의미
+        final productInfo =
+            await _naverShoppingService.searchByBarcode(barcode);
+        if (productInfo != null) {
+          setState(() {
+            _nameController.text = productInfo['name'];
+            _imageUrl = productInfo['imageUrl'];
+            _storeNameController.text = productInfo['storeName'];
+            _purchaseUrlController.text = productInfo['purchaseUrl'];
+          });
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('상품 정보를 찾을 수 없습니다')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('바코드 스캔 중 오류가 발생했습니다')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,7 +145,38 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
           ),
         ),
         actions: [
-          if (widget.product == null)
+          if (widget.product?.masterId != null) ...[
+            TextButton.icon(
+              icon: const Icon(Icons.edit_note),
+              label: const Text('마스터 상품 수정'),
+              onPressed: () async {
+                final masterProvider = context.read<ProductMasterProvider>();
+                final masters =
+                    await masterProvider.searchProducts(widget.product!.name);
+                if (masters.isNotEmpty) {
+                  final master = masters.first;
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductMasterEditPage(
+                          product: master,
+                        ),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+          if (widget.product == null) ...[
+            IconButton(
+              icon: const Icon(
+                Icons.qr_code_scanner,
+                color: AppColors.primary,
+              ),
+              onPressed: _scanBarcode,
+            ),
             IconButton(
               icon: const Icon(
                 Icons.inventory_2_outlined,
@@ -117,6 +191,7 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
                 );
               },
             ),
+          ],
         ],
       ),
       body: Consumer3<ProductProvider, ProductTemplateProvider,
@@ -132,15 +207,32 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
                 children: [
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: '상품명',
-                      hintText: '상품명을 입력하세요',
+                      suffixIcon: widget.product?.masterId == null
+                          ? IconButton(
+                              icon: Icon(Icons.search),
+                              onPressed: () async {
+                                if (_nameController.text.isNotEmpty) {
+                                  final result = await _naverShoppingService
+                                      .searchByName(_nameController.text);
+                                  if (result != null) {
+                                    setState(() {
+                                      _nameController.text =
+                                          result['name'] ?? '';
+                                      _storeNameController.text =
+                                          result['storeName'] ?? '';
+                                      _purchaseUrlController.text =
+                                          result['purchaseUrl'] ?? '';
+                                      _imageUrl = result['imageUrl'];
+                                    });
+                                  }
+                                }
+                              },
+                            )
+                          : null,
                     ),
-                    onChanged: (value) {
-                      setState(() {
-                        _isSearching = value.isNotEmpty;
-                      });
-                    },
+                    enabled: widget.product?.masterId == null,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return '상품명을 입력해주세요';
@@ -155,103 +247,119 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
                       child: Card(
                         child: Consumer<ProductMasterProvider>(
                           builder: (context, provider, child) {
-                            final products =
-                                provider.searchProducts(_nameController.text);
-                            if (products.isEmpty) {
-                              return const ListTile(
-                                title: Text('새로운 상품으로 등록됩니다'),
-                                subtitle: Text('아래 정보를 입력해주세요'),
-                              );
-                            }
-                            return ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: products.length,
-                              itemBuilder: (context, index) {
-                                final master = products[index];
-                                return ListTile(
-                                  leading: master.imageUrl != null
-                                      ? ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                          child: FutureBuilder<String>(
-                                            future:
-                                                ImageStorageUtil.getFullPath(
-                                              master.imageUrl!.contains(
-                                                      'product_images/')
-                                                  ? master.imageUrl!.substring(
-                                                      master.imageUrl!.indexOf(
-                                                          'product_images/'))
-                                                  : master.imageUrl!,
-                                            ),
-                                            builder: (context, snapshot) {
-                                              if (snapshot.hasData) {
-                                                return Image.file(
-                                                  File(snapshot.data!),
-                                                  width: 40,
-                                                  height: 40,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error,
-                                                      stackTrace) {
-                                                    return Container(
+                            return FutureBuilder<List<ProductMaster>>(
+                              future:
+                                  provider.searchProducts(_nameController.text),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                }
+
+                                if (!snapshot.hasData ||
+                                    snapshot.data!.isEmpty) {
+                                  return const ListTile(
+                                    title: Text('새로운 상품으로 등록됩니다'),
+                                    subtitle: Text('아래 정보를 입력해주세요'),
+                                  );
+                                }
+
+                                return ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: snapshot.data!.length,
+                                  itemBuilder: (context, index) {
+                                    final master = snapshot.data![index];
+                                    return ListTile(
+                                      leading: master.imageUrl != null
+                                          ? ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              child: master.imageUrl!
+                                                      .startsWith('http')
+                                                  ? Image.network(
+                                                      master.imageUrl!,
                                                       width: 40,
                                                       height: 40,
-                                                      decoration: BoxDecoration(
-                                                        color:
-                                                            AppColors.grey300,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(4),
-                                                      ),
-                                                      child: const Icon(
-                                                        Icons
-                                                            .image_not_supported_outlined,
-                                                        color:
-                                                            AppColors.grey500,
-                                                        size: 24,
-                                                      ),
-                                                    );
-                                                  },
-                                                );
-                                              }
-                                              return const SizedBox(
-                                                width: 40,
-                                                height: 40,
-                                                child: Center(
-                                                  child:
-                                                      CircularProgressIndicator(),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        )
-                                      : Container(
-                                          width: 40,
-                                          height: 40,
-                                          decoration: BoxDecoration(
-                                            color: AppColors.grey300,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: const Icon(
-                                            Icons.image_not_supported_outlined,
-                                            color: AppColors.grey500,
-                                          ),
-                                        ),
-                                  title: Text(master.name),
-                                  subtitle: Text(master.category),
-                                  onTap: () {
-                                    setState(() {
-                                      _nameController.text = master.name;
-                                      _selectedCategory = master.category;
-                                      _imageUrl = master.imageUrl;
-                                      _selectedMasterId =
-                                          master.key?.toString();
-                                      _storeNameController.text =
-                                          master.storeName ?? '';
-                                      _purchaseUrlController.text =
-                                          master.purchaseUrl ?? '';
-                                      _isSearching = false;
-                                    });
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context,
+                                                          error, stackTrace) {
+                                                        return Container(
+                                                          width: 40,
+                                                          height: 40,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: AppColors
+                                                                .grey300,
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        4),
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons
+                                                                .image_not_supported_outlined,
+                                                            color: AppColors
+                                                                .grey500,
+                                                            size: 24,
+                                                          ),
+                                                        );
+                                                      },
+                                                    )
+                                                  : Image.file(
+                                                      File(master.imageUrl!),
+                                                      width: 40,
+                                                      height: 40,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context,
+                                                          error, stackTrace) {
+                                                        print(
+                                                            '이미지 로드 에러: $error');
+                                                        print(
+                                                            '시도한 경로: ${master.imageUrl}');
+                                                        return Container(
+                                                          width: 40,
+                                                          height: 40,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: AppColors
+                                                                .grey300,
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        4),
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons
+                                                                .image_not_supported_outlined,
+                                                            color: AppColors
+                                                                .grey500,
+                                                            size: 24,
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                            )
+                                          : Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.grey300,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: const Icon(
+                                                Icons
+                                                    .image_not_supported_outlined,
+                                                color: AppColors.grey500,
+                                                size: 24,
+                                              ),
+                                            ),
+                                      title: Text(master.name),
+                                      subtitle: Text(master.category),
+                                      onTap: () => _selectMasterProduct(master),
+                                    );
                                   },
                                 );
                               },
@@ -275,13 +383,15 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
                         child: Text(category),
                       );
                     }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedCategory = value;
-                        });
-                      }
-                    },
+                    onChanged: widget.product?.masterId == null
+                        ? (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedCategory = value;
+                              });
+                            }
+                          }
+                        : null,
                   ),
                   const SizedBox(height: AppSpacing.medium),
                   TextFormField(
@@ -303,6 +413,7 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
                       labelText: '구매처',
                       hintText: '예: 이마트, 쿠팡 등',
                     ),
+                    enabled: widget.product?.masterId == null,
                   ),
                   const SizedBox(height: AppSpacing.medium),
                   TextFormField(
@@ -312,6 +423,7 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
                       hintText: '상품 구매 페이지 주소',
                     ),
                     keyboardType: TextInputType.url,
+                    enabled: widget.product?.masterId == null,
                   ),
                   const SizedBox(height: AppSpacing.medium),
                   Row(
@@ -355,19 +467,21 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
                           ),
                           const SizedBox(height: 8),
                           InkWell(
-                            onTap: () async {
-                              final picker = ImagePicker();
-                              final image = await picker.pickImage(
-                                  source: ImageSource.gallery);
-                              if (image != null) {
-                                final savedImagePath =
-                                    await ImageStorageUtil.saveImage(
-                                        File(image.path));
-                                setState(() {
-                                  _imageUrl = savedImagePath;
-                                });
-                              }
-                            },
+                            onTap: widget.product?.masterId == null
+                                ? () async {
+                                    final picker = ImagePicker();
+                                    final image = await picker.pickImage(
+                                        source: ImageSource.gallery);
+                                    if (image != null) {
+                                      final savedImagePath =
+                                          await ImageStorageUtil.saveImage(
+                                              File(image.path));
+                                      setState(() {
+                                        _imageUrl = savedImagePath;
+                                      });
+                                    }
+                                  }
+                                : null,
                             child: Container(
                               width: 100,
                               height: 100,
@@ -378,34 +492,57 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
                               child: _imageUrl != null
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: FutureBuilder<String>(
-                                        future: ImageStorageUtil.getFullPath(
-                                            _imageUrl!
-                                                    .contains('product_images/')
-                                                ? _imageUrl!.substring(
-                                                    _imageUrl!.indexOf(
-                                                        'product_images/'))
-                                                : _imageUrl!),
-                                        builder: (context, pathSnapshot) {
-                                          if (pathSnapshot.hasData) {
-                                            return Image.file(
-                                              File(pathSnapshot.data!),
+                                      child: _imageUrl!.startsWith('http')
+                                          ? Image.network(
+                                              _imageUrl!,
                                               width: 100,
                                               height: 100,
                                               fit: BoxFit.cover,
                                               errorBuilder:
                                                   (context, error, stackTrace) {
-                                                return const Icon(
-                                                  Icons.error_outline,
-                                                  color: AppColors.grey500,
-                                                  size: 32,
+                                                print('이미지 로드 에러: $error');
+                                                return Container(
+                                                  width: 100,
+                                                  height: 100,
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.grey300,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.error_outline,
+                                                    color: AppColors.grey500,
+                                                    size: 32,
+                                                  ),
                                                 );
                                               },
-                                            );
-                                          }
-                                          return const CircularProgressIndicator();
-                                        },
-                                      ),
+                                            )
+                                          : Image.file(
+                                              File(_imageUrl!),
+                                              width: 100,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                print('이미지 로드 에러: $error');
+                                                return Container(
+                                                  width: 100,
+                                                  height: 100,
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.grey300,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.error_outline,
+                                                    color: AppColors.grey500,
+                                                    size: 32,
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                     )
                                   : const Icon(
                                       Icons.add_photo_alternate_outlined,
@@ -457,10 +594,10 @@ class _ProductRegisterPageState extends State<ProductRegisterPage> {
 
                   // 방금 추가한 마스터 상품의 ID를 찾습니다
                   final products =
-                      masterProvider.searchProducts(_nameController.text);
+                      await masterProvider.searchProducts(_nameController.text);
                   if (products.isNotEmpty) {
                     final savedMaster = products.first;
-                    _selectedMasterId = savedMaster.key.toString();
+                    _selectedMasterId = savedMaster.key?.toString();
                   }
                 }
 

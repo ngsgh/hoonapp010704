@@ -180,8 +180,11 @@ class _ProductMasterEditPageState extends State<ProductMasterEditPage> {
                           final savedImagePath =
                               await ImageStorageUtil.saveImage(
                                   File(image.path));
+                          final fullPath = await ImageStorageUtil.getFullPath(
+                              savedImagePath);
+                          print('저장된 이미지 전체 경로: $fullPath');
                           setState(() {
-                            _imageUrl = savedImagePath;
+                            _imageUrl = fullPath;
                           });
                         }
                       },
@@ -195,35 +198,56 @@ class _ProductMasterEditPageState extends State<ProductMasterEditPage> {
                         child: _imageUrl != null
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: FutureBuilder<String>(
-                                  future: ImageStorageUtil.getFullPath(
-                                      _imageUrl!.contains('product_images/')
-                                          ? _imageUrl!.substring(_imageUrl!
-                                              .indexOf('product_images/'))
-                                          : _imageUrl!),
-                                  builder: (context, pathSnapshot) {
-                                    if (pathSnapshot.hasData) {
-                                      return Image.file(
-                                        File(pathSnapshot.data!),
+                                child: _imageUrl!.startsWith('http')
+                                    ? Image.network(
+                                        _imageUrl!,
                                         width: 120,
                                         height: 120,
                                         fit: BoxFit.cover,
                                         errorBuilder:
                                             (context, error, stackTrace) {
-                                          debugPrint('이미지 로드 에러: $error');
-                                          debugPrint(
-                                              '시도한 경로: ${pathSnapshot.data}');
-                                          return const Icon(
-                                            Icons.error_outline,
-                                            color: AppColors.grey500,
-                                            size: 48,
+                                          print('이미지 로드 에러: $error');
+                                          return Container(
+                                            width: 120,
+                                            height: 120,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.grey300,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: const Icon(
+                                              Icons.error_outline,
+                                              color: AppColors.grey500,
+                                              size: 32,
+                                            ),
                                           );
                                         },
-                                      );
-                                    }
-                                    return const CircularProgressIndicator();
-                                  },
-                                ),
+                                      )
+                                    : Image.file(
+                                        File(_imageUrl!),
+                                        width: 120,
+                                        height: 120,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          print('이미지 로드 에러: $error');
+                                          print('시도한 경로: $_imageUrl');
+                                          return Container(
+                                            width: 120,
+                                            height: 120,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.grey300,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: const Icon(
+                                              Icons.error_outline,
+                                              color: AppColors.grey500,
+                                              size: 32,
+                                            ),
+                                          );
+                                        },
+                                      ),
                               )
                             : const Icon(
                                 Icons.add_photo_alternate_outlined,
@@ -254,17 +278,14 @@ class _ProductMasterEditPageState extends State<ProductMasterEditPage> {
                   purchaseUrl: _purchaseUrlController.text,
                 );
 
+                final provider = context.read<ProductMasterProvider>();
                 if (widget.product != null) {
-                  await context
-                      .read<ProductMasterProvider>()
-                      .updateProduct(widget.product!, product);
+                  await provider.updateProduct(widget.product!, product);
                 } else {
-                  await context
-                      .read<ProductMasterProvider>()
-                      .addProduct(product);
+                  await provider.addProduct(product);
                 }
 
-                if (context.mounted) {
+                if (mounted) {
                   Navigator.pop(context);
                 }
               }

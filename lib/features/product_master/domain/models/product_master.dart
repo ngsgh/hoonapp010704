@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'product_master.g.dart';
 
-@HiveType(typeId: 2)
+@HiveType(typeId: 3)
 class ProductMaster extends HiveObject {
   @HiveField(0)
   final String name;
@@ -14,26 +14,26 @@ class ProductMaster extends HiveObject {
   final String? imageUrl;
 
   @HiveField(3)
-  final int useCount; // 사용 빈도 추적
+  final int useCount;
 
   @HiveField(4)
-  final DateTime createdAt; // 생성 시간
+  final DateTime createdAt;
 
   @HiveField(5)
-  final String? purchaseUrl; // 구매 URL
+  final String? storeName;
 
   @HiveField(6)
-  final String? storeName; // 구매처 이름
+  final String? purchaseUrl;
 
   ProductMaster({
     required this.name,
     required this.category,
     this.imageUrl,
     this.useCount = 0,
-    this.purchaseUrl,
-    this.storeName,
     DateTime? createdAt,
-  }) : this.createdAt = createdAt ?? DateTime.now();
+    this.storeName,
+    this.purchaseUrl,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   ProductMaster copyWith({
     String? name,
@@ -41,8 +41,8 @@ class ProductMaster extends HiveObject {
     String? imageUrl,
     int? useCount,
     DateTime? createdAt,
-    String? purchaseUrl,
     String? storeName,
+    String? purchaseUrl,
   }) {
     return ProductMaster(
       name: name ?? this.name,
@@ -50,8 +50,30 @@ class ProductMaster extends HiveObject {
       imageUrl: imageUrl ?? this.imageUrl,
       useCount: useCount ?? this.useCount,
       createdAt: createdAt ?? this.createdAt,
-      purchaseUrl: purchaseUrl ?? this.purchaseUrl,
       storeName: storeName ?? this.storeName,
+      purchaseUrl: purchaseUrl ?? this.purchaseUrl,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'category': category,
+      'imageUrl': imageUrl,
+      'useCount': useCount,
+      'storeName': storeName,
+      'purchaseUrl': purchaseUrl,
+    };
+  }
+
+  factory ProductMaster.fromJson(Map<String, dynamic> json) {
+    return ProductMaster(
+      name: json['name'] as String,
+      category: json['category'] as String,
+      imageUrl: json['imageUrl'] as String?,
+      useCount: json['useCount'] as int,
+      storeName: json['storeName'] as String?,
+      purchaseUrl: json['purchaseUrl'] as String?,
     );
   }
 }

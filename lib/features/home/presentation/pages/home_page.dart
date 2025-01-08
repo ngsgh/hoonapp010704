@@ -8,6 +8,10 @@ import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
 import '../../../product_register/presentation/pages/product_register_page.dart';
 import '../../../search/presentation/pages/search_page.dart';
+import 'dart:io';
+import '../../../../core/utils/image_storage_util.dart';
+import '../../../product_master/presentation/pages/product_master_edit_page.dart';
+import '../../../product_master/presentation/providers/product_master_provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -170,23 +174,140 @@ class HomePage extends StatelessWidget {
                                   ),
                                   child: ProductListItem(
                                     product: product,
-                                    onEdit: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              ProductRegisterPage(
-                                            product: product,
-                                            index: provider.products
-                                                .indexOf(product),
+                                    onEdit: () async {
+                                      if (product.masterId != null) {
+                                        final masterProvider = context
+                                            .read<ProductMasterProvider>();
+                                        final masters = await masterProvider
+                                            .searchProducts(product.name);
+                                        if (masters.isNotEmpty) {
+                                          final master = masters.first;
+                                          if (context.mounted) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    ProductMasterEditPage(
+                                                  product: master,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      } else {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                ProductRegisterPage(
+                                              product: product,
+                                              index: provider.products
+                                                  .indexOf(product),
+                                            ),
                                           ),
-                                        ),
-                                      );
+                                        );
+                                      }
                                     },
                                     onDelete: () {
                                       provider.deleteProduct(
                                           provider.products.indexOf(product));
                                     },
+                                    leading: product.imageUrl != null
+                                        ? ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                            child: product.imageUrl!
+                                                    .startsWith('http')
+                                                ? Image.network(
+                                                    product.imageUrl!,
+                                                    width: 40,
+                                                    height: 40,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context,
+                                                        error, stackTrace) {
+                                                      return Container(
+                                                        width: 40,
+                                                        height: 40,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color:
+                                                              AppColors.grey300,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(4),
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons
+                                                              .image_not_supported_outlined,
+                                                          color:
+                                                              AppColors.grey500,
+                                                          size: 24,
+                                                        ),
+                                                      );
+                                                    },
+                                                  )
+                                                : FutureBuilder<String>(
+                                                    future: ImageStorageUtil
+                                                        .getFullPath(
+                                                      product.imageUrl!.contains(
+                                                              'product_images/')
+                                                          ? product.imageUrl!
+                                                              .substring(product
+                                                                  .imageUrl!
+                                                                  .indexOf(
+                                                                      'product_images/'))
+                                                          : product.imageUrl!,
+                                                    ),
+                                                    builder:
+                                                        (context, snapshot) {
+                                                      if (snapshot.hasData) {
+                                                        return Image.file(
+                                                          File(snapshot.data!),
+                                                          width: 40,
+                                                          height: 40,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  stackTrace) {
+                                                            print(
+                                                                '이미지 로드 에러: $error');
+                                                            print(
+                                                                '시도한 경로: ${snapshot.data}');
+                                                            return Container(
+                                                              width: 40,
+                                                              height: 40,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: AppColors
+                                                                    .grey300,
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            4),
+                                                              ),
+                                                              child: const Icon(
+                                                                Icons
+                                                                    .image_not_supported_outlined,
+                                                                color: AppColors
+                                                                    .grey500,
+                                                                size: 24,
+                                                              ),
+                                                            );
+                                                          },
+                                                        );
+                                                      }
+                                                      return const SizedBox(
+                                                        width: 40,
+                                                        height: 40,
+                                                        child: Center(
+                                                          child:
+                                                              CircularProgressIndicator(),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                          )
+                                        : null,
                                   ),
                                 );
                               }).toList(),

@@ -22,6 +22,11 @@ class AppTypography {
     fontWeight: FontWeight.w400,
   );
 
+  static const caption = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+  );
+
   static final textTheme = TextTheme(
     titleLarge: title.copyWith(color: AppColors.grey900),
     bodyLarge: body.copyWith(color: AppColors.grey900),

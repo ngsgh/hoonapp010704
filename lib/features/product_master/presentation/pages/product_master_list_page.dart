@@ -66,12 +66,6 @@ class _ProductMasterListPageState extends State<ProductMasterListPage> {
       body: Consumer<ProductMasterProvider>(
         builder: (context, provider, child) {
           final categories = ['전체', ...provider.getCategories()];
-          final products = _selectedCategory == '전체'
-              ? provider.searchProducts(_searchController.text)
-              : provider
-                  .searchProducts(_searchController.text)
-                  .where((p) => p.category == _selectedCategory)
-                  .toList();
 
           return Column(
             children: [
@@ -125,86 +119,119 @@ class _ProductMasterListPageState extends State<ProductMasterListPage> {
                 ),
               ),
               Expanded(
-                child: ListView.builder(
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return ListTile(
-                      leading: product.imageUrl != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: FutureBuilder<String>(
-                                future: ImageStorageUtil.getFullPath(
-                                  product.imageUrl!.contains('product_images/')
-                                      ? product.imageUrl!.substring(product
-                                          .imageUrl!
-                                          .indexOf('product_images/'))
-                                      : product.imageUrl!,
-                                ),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    return Image.file(
-                                      File(snapshot.data!),
-                                      width: 40,
-                                      height: 40,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Container(
+                child: FutureBuilder<List<ProductMaster>>(
+                  future: provider.searchProducts(_searchController.text),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(
+                        child: Text('상품이 없습니다.'),
+                      );
+                    }
+
+                    final products = _selectedCategory == '전체'
+                        ? snapshot.data!
+                        : snapshot.data!
+                            .where((p) => p.category == _selectedCategory)
+                            .toList();
+
+                    return ListView.builder(
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        return ListTile(
+                          leading: product.imageUrl != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: product.imageUrl!.startsWith('http')
+                                      ? Image.network(
+                                          product.imageUrl!,
                                           width: 40,
                                           height: 40,
-                                          decoration: BoxDecoration(
-                                            color: AppColors.grey300,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: const Icon(
-                                            Icons.image_not_supported_outlined,
-                                            color: AppColors.grey500,
-                                            size: 24,
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  }
-                                  return const SizedBox(
-                                    width: 40,
-                                    height: 40,
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                          : Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: AppColors.grey300,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Icon(
-                                Icons.image_not_supported_outlined,
-                                color: AppColors.grey500,
-                              ),
-                            ),
-                      title: Text(product.name),
-                      subtitle: Text(product.category),
-                      trailing: Text(
-                        '사용 ${product.useCount}회',
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.grey700,
-                        ),
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProductMasterEditPage(
-                              product: product,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.grey300,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: const Icon(
+                                                Icons
+                                                    .image_not_supported_outlined,
+                                                color: AppColors.grey500,
+                                                size: 24,
+                                              ),
+                                            );
+                                          },
+                                        )
+                                      : Image.file(
+                                          File(product.imageUrl!),
+                                          width: 40,
+                                          height: 40,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            print('이미지 로드 에러: $error');
+                                            print(
+                                                '시도한 경로: ${product.imageUrl}');
+                                            return Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.grey300,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: const Icon(
+                                                Icons
+                                                    .image_not_supported_outlined,
+                                                color: AppColors.grey500,
+                                                size: 24,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                )
+                              : Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.grey300,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Icon(
+                                    Icons.image_not_supported_outlined,
+                                    color: AppColors.grey500,
+                                    size: 24,
+                                  ),
+                                ),
+                          title: Text(product.name),
+                          subtitle: Text(product.category),
+                          trailing: Text(
+                            '사용 ${product.useCount}회',
+                            style: AppTypography.body.copyWith(
+                              color: AppColors.grey700,
                             ),
                           ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductMasterEditPage(
+                                  product: product,
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                     );

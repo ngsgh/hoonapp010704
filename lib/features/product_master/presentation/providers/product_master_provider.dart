@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
+import '../../../../core/utils/image_storage_util.dart';
 import '../../domain/models/product_master.dart';
 
 class ProductMasterProvider extends ChangeNotifier {
@@ -19,14 +20,32 @@ class ProductMasterProvider extends ChangeNotifier {
         '기타',
       ];
 
-  List<ProductMaster> searchProducts(String query) {
-    if (query.isEmpty) {
-      return _box.values.toList();
+  Future<List<ProductMaster>> _convertImagePaths(
+      List<ProductMaster> products) async {
+    final List<ProductMaster> result = [];
+    for (var product in products) {
+      if (product.imageUrl != null &&
+          !product.imageUrl!.startsWith('http') &&
+          !product.imageUrl!.startsWith('/')) {
+        final fullPath = await ImageStorageUtil.getFullPath(product.imageUrl!);
+        result.add(product.copyWith(imageUrl: fullPath));
+      } else {
+        result.add(product);
+      }
     }
-    return _box.values
+    return result;
+  }
+
+  Future<List<ProductMaster>> searchProducts(String query) async {
+    if (query.isEmpty) {
+      final products = _box.values.toList();
+      return _convertImagePaths(products);
+    }
+    final products = _box.values
         .where((product) =>
             product.name.toLowerCase().contains(query.toLowerCase()))
         .toList();
+    return _convertImagePaths(products);
   }
 
   List<String> getCategories() {
